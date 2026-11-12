@@ -1,5 +1,10 @@
 # Changelog
 
+## Features
+
+- Add streaming inclusive time-range reads for selected numeric channels, with an optional time channel or record-index timestamps, bounded uncompressed reads, and compressed-block support when enabled.
+- Preserve channel component/array-definition addresses in indexes, including deserialization defaults for older serialized indexes.
+
 ## Bug fixes
 
 - **DZ blocks:** Validate compressed lengths against the platform size and declared block length, detect length overflow, and limit decompression to the declared output size. Correct inverse transposition for data whose final row is incomplete.

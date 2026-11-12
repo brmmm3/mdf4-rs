@@ -77,6 +77,7 @@ mod data_block_info;
 mod file_range_reader;
 mod indexed_channel;
 mod indexed_channel_group;
+mod time_range;
 pub use _http_range_reader_example::_HttpRangeReaderExample;
 pub use buffered_range_reader::BufferedRangeReader;
 pub use byte_range_reader::ByteRangeReader;
@@ -84,6 +85,7 @@ pub use data_block_info::DataBlockInfo;
 pub use file_range_reader::FileRangeReader;
 pub use indexed_channel::IndexedChannel;
 pub use indexed_channel_group::IndexedChannelGroup;
+pub use time_range::TimeRangeData;
 
 #[cfg(feature = "compression")]
 use crate::blocks::DzBlock;
@@ -180,6 +182,7 @@ impl MdfIndex {
                     bit_offset: block.bit_offset,
                     bit_count: block.bit_count,
                     channel_type: block.channel_type,
+                    component_addr: block.component_addr,
                     flags: block.flags,
                     pos_invalidation_bit: block.pos_invalidation_bit,
                     conversion: resolved_conversion,
@@ -313,6 +316,7 @@ impl MdfIndex {
                         bit_offset: cn_block.bit_offset,
                         bit_count: cn_block.bit_count,
                         channel_type: cn_block.channel_type,
+                        component_addr: cn_block.component_addr,
                         flags: cn_block.flags,
                         pos_invalidation_bit: cn_block.pos_invalidation_bit,
                         conversion,
@@ -1496,6 +1500,7 @@ mod tests {
                     bit_offset: 0,
                     bit_count: 8,
                     channel_type: 0,
+                    component_addr: 0,
                     flags: 0,
                     pos_invalidation_bit: 0,
                     conversion: None,

@@ -85,6 +85,7 @@ See [`examples/`](./examples/) for complete working examples:
 - `lin_logging.rs` - LIN bus logging
 - `flexray_logging.rs` - FlexRay bus logging
 - `index_operations.rs` - Efficient file indexing
+- `time_range.rs` - Streaming channel reads within inclusive time bounds
 - `merge_files.rs` - Merging multiple MDF4 files
 - `cut_file.rs` - Extracting time segments
 - `no_std_write.rs` - Writing MDF4 in no_std environments
