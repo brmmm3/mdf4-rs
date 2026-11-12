@@ -379,4 +379,155 @@ mod tests {
             );
         }
     }
+
+    fn decode(data_type: DataType, bit_count: u32, record: &[u8]) -> Option<DecodedValue> {
+        let channel = ChannelBlock {
+            data_type,
+            bit_count,
+            ..Default::default()
+        };
+        decode_channel_value(record, 0, &channel)
+    }
+
+    #[test]
+    fn decodes_big_endian_signed_and_unsigned_values() {
+        assert_eq!(
+            decode(DataType::UnsignedIntegerBE, 8, &[0xab]),
+            Some(DecodedValue::UnsignedInteger(0xab))
+        );
+        assert_eq!(
+            decode(DataType::SignedIntegerBE, 8, &[0x7f]),
+            Some(DecodedValue::SignedInteger(127))
+        );
+        assert_eq!(
+            decode(DataType::SignedIntegerBE, 8, &[0xff]),
+            Some(DecodedValue::SignedInteger(-1))
+        );
+    }
+
+    #[test]
+    fn decodes_32_bit_floats_in_both_byte_orders() {
+        let value = 42.5f32;
+        assert_eq!(
+            decode(DataType::FloatLE, 32, &value.to_bits().to_le_bytes()),
+            Some(DecodedValue::Float(value as f64))
+        );
+        assert_eq!(
+            decode(DataType::FloatBE, 32, &value.to_bits().to_be_bytes()),
+            Some(DecodedValue::Float(value as f64))
+        );
+        assert_eq!(decode(DataType::FloatLE, 16, &[0, 0]), None);
+    }
+
+    #[test]
+    fn decodes_string_encodings_and_invalid_inputs() {
+        assert_eq!(
+            decode(DataType::StringLatin1, 16, &[0xe9, 0]),
+            Some(DecodedValue::String("é".to_string()))
+        );
+        assert_eq!(
+            decode(DataType::StringUtf8, 24, b"ok\0"),
+            Some(DecodedValue::String("ok".to_string()))
+        );
+        assert_eq!(
+            decode(DataType::StringUtf8, 8, &[0xff]),
+            Some(DecodedValue::String("<Invalid UTF8>".to_string()))
+        );
+        assert_eq!(
+            decode(DataType::StringUtf16LE, 32, &[b'A', 0, 0, 0]),
+            Some(DecodedValue::String("A".to_string()))
+        );
+        assert_eq!(
+            decode(DataType::StringUtf16BE, 32, &[0, b'A', 0, 0]),
+            Some(DecodedValue::String("A".to_string()))
+        );
+        assert_eq!(
+            decode(DataType::StringUtf16LE, 16, &[0, 0xd8]),
+            Some(DecodedValue::String("<Invalid UTF16LE>".to_string()))
+        );
+        assert_eq!(
+            decode(DataType::StringUtf16BE, 16, &[0xd8, 0]),
+            Some(DecodedValue::String("<Invalid UTF16BE>".to_string()))
+        );
+        assert_eq!(decode(DataType::StringUtf16LE, 8, &[b'A']), None);
+        assert_eq!(decode(DataType::StringUtf16BE, 8, &[b'A']), None);
+    }
+
+    #[test]
+    fn decodes_mime_and_unknown_types() {
+        assert_eq!(
+            decode(DataType::MimeSample, 16, &[1, 2]),
+            Some(DecodedValue::MimeSample(vec![1, 2]))
+        );
+        assert_eq!(
+            decode(DataType::MimeStream, 16, &[3, 4]),
+            Some(DecodedValue::MimeStream(vec![3, 4]))
+        );
+        assert_eq!(
+            decode(DataType::CanOpenDate, 64, &[0; 8]),
+            Some(DecodedValue::Unknown)
+        );
+    }
+
+    #[test]
+    fn handles_variable_length_payloads_and_invalid_ranges() {
+        let channel = ChannelBlock {
+            channel_type: 1,
+            data_addr: 1,
+            data_type: DataType::StringUtf8,
+            bit_count: 16,
+            ..Default::default()
+        };
+        assert_eq!(
+            decode_channel_value(b"ok", 0, &channel),
+            Some(DecodedValue::String("ok".to_string()))
+        );
+
+        let out_of_bounds = ChannelBlock {
+            byte_offset: 2,
+            bit_count: 8,
+            ..Default::default()
+        };
+        assert_eq!(decode_channel_value(&[1], 0, &out_of_bounds), None);
+
+        let overflowing_start = ChannelBlock {
+            byte_offset: 1,
+            bit_count: 8,
+            ..Default::default()
+        };
+        assert_eq!(
+            decode_channel_value(&[1], usize::MAX, &overflowing_start),
+            None
+        );
+
+        let overflowing_end = ChannelBlock {
+            bit_count: 8,
+            ..Default::default()
+        };
+        assert_eq!(
+            decode_channel_value(&[], usize::MAX, &overflowing_end),
+            None
+        );
+    }
+
+    #[test]
+    fn checks_validity_flags_and_invalidation_bits() {
+        let all_invalid = ChannelBlock {
+            flags: CN_FLAG_ALL_INVALID,
+            ..Default::default()
+        };
+        assert!(!check_value_validity(&[0; 3], 0, 2, &all_invalid));
+
+        let all_valid = ChannelBlock::default();
+        assert!(check_value_validity(&[0; 3], 0, 2, &all_valid));
+
+        let invalidation = ChannelBlock {
+            flags: CN_FLAG_INVAL_BIT_VALID,
+            pos_invalidation_bit: 1,
+            ..Default::default()
+        };
+        assert!(check_value_validity(&[0, 0, 0], 0, 2, &invalidation));
+        assert!(!check_value_validity(&[0, 0, 0b10], 0, 2, &invalidation));
+        assert!(check_value_validity(&[0, 0], 0, 2, &invalidation));
+    }
 }
