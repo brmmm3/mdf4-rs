@@ -77,6 +77,7 @@ mod data_block_info;
 mod file_range_reader;
 mod indexed_channel;
 mod indexed_channel_group;
+mod recovered;
 mod time_range;
 pub use _http_range_reader_example::_HttpRangeReaderExample;
 pub use buffered_range_reader::BufferedRangeReader;
@@ -85,6 +86,7 @@ pub use data_block_info::DataBlockInfo;
 pub use file_range_reader::FileRangeReader;
 pub use indexed_channel::IndexedChannel;
 pub use indexed_channel_group::IndexedChannelGroup;
+pub use recovered::RecoveredMdfIndex;
 pub use time_range::TimeRangeData;
 
 #[cfg(feature = "compression")]

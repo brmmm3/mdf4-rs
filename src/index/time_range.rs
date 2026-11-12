@@ -13,7 +13,7 @@ pub struct TimeRangeData {
     pub values: Vec<Vec<Option<f64>>>,
 }
 
-fn channel_block(channel: &IndexedChannel) -> ChannelBlock {
+pub(super) fn channel_block(channel: &IndexedChannel) -> ChannelBlock {
     ChannelBlock {
         header: BlockHeader {
             id: "##CN".into(),
@@ -51,7 +51,11 @@ fn channel_block(channel: &IndexedChannel) -> ChannelBlock {
     }
 }
 
-fn decode(record: &[u8], record_size: u32, channel: &ChannelBlock) -> Result<Option<f64>> {
+pub(super) fn decode(
+    record: &[u8],
+    record_size: u32,
+    channel: &ChannelBlock,
+) -> Result<Option<f64>> {
     match decode_channel_value_with_validity(record, 0, record_size, channel) {
         Some(decoded) if decoded.is_valid => {
             let value = match &channel.conversion {
